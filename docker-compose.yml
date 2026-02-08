@@ -1,0 +1,17 @@
+services:
+  db:
+    container_name: tradein_chevrolet_db
+    image: postgres:17
+    ports:
+      - "5432:5432"
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres11
+      POSTGRES_DB: tradein
+
+    volumes:
+      - tradein_pgdata:/var/lib/postgresql/data
+
+volumes:
+  tradein_pgdata:

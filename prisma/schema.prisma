@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EngineType {
+  PETROL
+  DIESEL
+  GAS
+  HYBRID
+  PETROL_GAS
+}
+
+enum TransmissionType {
+  AUTOMATIC
+  MECHANIC
+  ROBOTIC
+}
+
+enum DriveType {
+  FRONT
+  REAR
+  FULL
+}
+
+enum SteeringWheelSide {
+  LEFT
+  RIGHT
+}
+
+model TradeinInfo {
+  id Int @id @default(autoincrement())
+  manager String
+  carBrand String
+  carModel String
+  productionYear Int
+  engineVolume Float
+  engineType EngineType
+  transmission TransmissionType 
+  drive DriveType
+  mileage Int
+  bodyType String
+  steeringWheelSide SteeringWheelSide
+  vinCode String @db.VarChar(17)
+  carCondition String
+  hasRestrictions Boolean
+  comment String
+  photos CarPhoto[]
+  price Float
+  clientName String
+  clientPhone String
+  createdAt DateTime @default(now())
+}
+
+model CarPhoto {
+  id Int @id @default(autoincrement())
+  path String
+  tradeinInfoId Int
+  tradeinInfo TradeinInfo @relation(fields: [tradeinInfoId], references: [id])
+}
