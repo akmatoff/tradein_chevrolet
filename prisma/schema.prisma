@@ -38,6 +38,16 @@ enum SteeringWheelSide {
   RIGHT
 }
 
+enum BodyType {
+  SEDAN
+  HATCHBACK
+  UNIVERSAL
+  COUPE
+  SUV
+  CROSSOVER
+  MINIVAN
+}
+
 model TradeinInfo {
   id Int @id @default(autoincrement())
   manager String
@@ -49,7 +59,7 @@ model TradeinInfo {
   transmission TransmissionType 
   drive DriveType
   mileage Int
-  bodyType String
+  bodyType BodyType
   steeringWheelSide SteeringWheelSide
   vinCode String @db.VarChar(17)
   carCondition String
