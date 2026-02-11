@@ -13,5 +13,12 @@ services:
     volumes:
       - tradein_pgdata:/var/lib/postgresql/data
 
+  bot:
+    container_name: tradein_chevrolet_bot
+    build: .
+
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: ${DATABASE_URL}
 volumes:
   tradein_pgdata:

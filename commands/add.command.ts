@@ -8,7 +8,6 @@ import {
   FIELD_VALUES,
   FIELD_LABELS,
   getValueLabel,
-  FieldName,
   validateField,
 } from "../utils/fields";
 import { message } from "telegraf/filters";
@@ -21,6 +20,7 @@ import {
   SteeringWheelSide,
   TransmissionType,
 } from "../generated/prisma/enums";
+import { PHOTO_LABELS, PHOTO_TYPES } from "../utils/photo-fields";
 
 export class AddCommand extends Command {
   private tradeInService: TradeInService;
@@ -33,10 +33,12 @@ export class AddCommand extends Command {
 
   handle(): void {
     this.bot.command("add", async (ctx) => {
-      ctx.session = { formData: {} };
+      ctx.session = { formData: {}, photos: {}, currentPhotoType: undefined };
+
       await ctx.reply(
         "Заполните поля для формы по одному. Используйте команду: /cancel для отмены.",
       );
+
       await this.askNext(ctx);
     });
 
@@ -44,20 +46,34 @@ export class AddCommand extends Command {
       if (!ctx.session?.formData) return;
 
       const input = ctx.message.text.trim();
+
       if (input === "cancel" || input === "/cancel") {
         delete ctx.session.formData;
+        delete ctx.session.photos;
+        delete ctx.session.currentPhotoType;
+
         await ctx.reply("❌ Отменено.");
+
+        return;
+      }
+
+      if (ctx.session.photos && ctx.session.currentPhotoType) {
+        await ctx.reply("📸 Пожалуйста, отправьте фото.");
+
         return;
       }
 
       const currentField = FIELDS.find(
         (f) => ctx.session!.formData![f] === undefined,
       );
+
       if (!currentField) return;
 
       if (BUTTON_FIELDS.has(currentField)) {
         await ctx.reply("Пожалуйста, выберите вариант из кнопок.");
+
         await this.askNext(ctx);
+
         return;
       }
 
@@ -69,6 +85,7 @@ export class AddCommand extends Command {
       }
 
       ctx.session.formData[currentField] = input;
+
       await this.askNext(ctx);
     });
 
@@ -78,58 +95,109 @@ export class AddCommand extends Command {
       const currentField = FIELDS.find(
         (f) => ctx.session!.formData![f] === undefined,
       );
+
       if (!currentField) return;
 
       const [, fieldName, value] = ctx.match;
+
       if (fieldName !== currentField) return;
 
       ctx.session.formData[fieldName] = value;
+
       await ctx.answerCbQuery();
       await this.askNext(ctx);
+    });
+
+    this.bot.on(message("photo"), async (ctx) => {
+      if (!ctx.session.photos || !ctx.session.currentPhotoType) return;
+
+      const photo = ctx.message.photo[ctx.message.photo.length - 1];
+      const type = ctx.session.currentPhotoType;
+
+      ctx.session.photos[type] = photo.file_id;
+
+      const currentIndex = PHOTO_TYPES.indexOf(type);
+
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex < PHOTO_TYPES.length) {
+        ctx.session.currentPhotoType = PHOTO_TYPES[nextIndex];
+
+        await ctx.reply(`✅ ${PHOTO_LABELS[type]} сохранена.`);
+
+        await this.askNext(ctx);
+      } else {
+        await this.showFullSummary(ctx);
+
+        await this.saveData(ctx);
+      }
     });
 
     this.bot.command("cancel", async (ctx) => {
       if (ctx.session?.formData) {
         delete ctx.session.formData;
+        delete ctx.session.photos;
+        delete ctx.session.currentPhotoType;
+
         await ctx.reply("❌ Отменено.");
       }
     });
   }
 
+  private async saveData(ctx: BotContext) {
+    try {
+      const parsedData = this.parseFormData(ctx.session!.formData!);
+
+      const record = await this.tradeInService.create(parsedData);
+
+      await ctx.reply(`✅ Запись сохранена! ID: ${record.id}`);
+    } catch (e) {
+      console.error("Save error:", e);
+
+      await ctx.reply("❌ Ошибка при сохранении.");
+    } finally {
+      delete ctx.session?.formData;
+      delete ctx.session?.photos;
+      delete ctx.session?.currentPhotoType;
+    }
+  }
+
   private async askNext(ctx: BotContext) {
+    if (ctx.session?.photos && ctx.session.currentPhotoType) {
+      const type = ctx.session.currentPhotoType;
+
+      await ctx.reply(`${PHOTO_LABELS[type]}:`);
+
+      return;
+    }
+
     const nextField = FIELDS.find(
       (f) => ctx.session!.formData![f] === undefined,
     );
 
     if (!nextField) {
-      try {
-        const parsedData = this.parseFormData(ctx.session!.formData!);
-        await this.summary(ctx, ctx.session!.formData!);
+      ctx.session!.currentPhotoType = "front";
 
-        const record = await this.tradeInService.create(parsedData);
-
-        await ctx.reply(`Запись сохранена! ID: ${record.id}`);
-      } catch (e) {
-        console.error("Save error: ", e);
-        await ctx.reply(
-          "❌ Ошибка при сохранении данных. Пожалуйста, попробуйте заново.",
-        );
-      } finally {
-        delete ctx.session.formData;
-      }
+      await ctx.reply(
+        "✅ Текстовые поля заполнены!\n\nТеперь отправьте фото по порядку:",
+      );
+      await this.askNext(ctx);
 
       return;
     }
 
     if (BUTTON_FIELDS.has(nextField)) {
       const values = FIELD_VALUES[nextField as keyof typeof FIELD_VALUES];
+
       const labels = FIELD_LABELS[nextField as keyof typeof FIELD_LABELS];
+
       const buttons = values.map((v) =>
         Markup.button.callback(
           labels[v as keyof typeof labels],
           `${nextField}:${v}`,
         ),
       );
+
       await ctx.reply(
         `${LABELS[nextField]}:`,
         Markup.inlineKeyboard(buttons, { columns: 2 }),
@@ -139,19 +207,40 @@ export class AddCommand extends Command {
     }
   }
 
-  private async summary(ctx: BotContext, formData: Record<string, string>) {
-    let result = "";
+  private async showFullSummary(ctx: BotContext) {
+    let textSummary = "📋 Отправляю результаты:\n\n";
 
-    await ctx.reply("📋 Отправляю результаты!");
+    for (const field of FIELDS) {
+      const value = ctx.session!.formData![field];
 
-    for (const field in formData) {
-      const value = formData[field];
-      if (value === undefined) continue;
-
-      result += `${LABELS[field as keyof typeof LABELS]}: ${getValueLabel(field as FieldName, value)}\n`;
+      if (value !== undefined) {
+        const displayValue = getValueLabel(field, value);
+        textSummary += `${LABELS[field]}: ${displayValue}\n`;
+      }
     }
 
-    await ctx.reply(result);
+    await ctx.reply(textSummary);
+
+    const photos = ctx.session?.photos || {};
+
+    const fileIds = PHOTO_TYPES.map((type) => photos[type]).filter(
+      Boolean,
+    ) as string[];
+
+    if (fileIds.length > 0) {
+      try {
+        await ctx.replyWithMediaGroup(
+          fileIds.map((fileId, index) => ({
+            type: "photo",
+            media: fileId,
+          })),
+        );
+      } catch (error) {
+        for (const [i, fileId] of fileIds.entries()) {
+          await ctx.replyWithPhoto(fileId);
+        }
+      }
+    }
   }
 
   private parseFormData(formData: Record<string, string>): TradeinInfoInput {
