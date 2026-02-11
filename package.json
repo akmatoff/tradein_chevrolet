@@ -25,6 +25,7 @@
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "pg": "^8.18.0",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "zod": "^4.3.6"
   }
 }

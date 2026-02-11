@@ -1,4 +1,5 @@
 import { BotContext } from "../bot/context";
+import { z } from "zod";
 
 type BaseField = {
   name: string;
@@ -130,8 +131,61 @@ export const FIELD_LABELS = {
   },
 } as const;
 
+export const fieldSchemas = {
+  manager: z
+    .string({ error: "Значение для менеджера не корректно" })
+    .min(1, "Менеджер не может быть пустым"),
+  carBrand: z.string().min(1, "Марка не может быть пустой"),
+  carModel: z.string().min(1, "Модель не может быть пустой"),
+  productionYear: z.coerce
+    .number()
+    .int("Пожалуйсте, введите целое число")
+    .positive("Год выпуска должен быть положительным"),
+  engineVolume: z.coerce
+    .number("Пожалуйста, введите число")
+    .positive("Объем двигателя должен быть положительным"),
+  engineType: z.enum(FIELD_VALUES.engineType),
+  transmission: z.enum(FIELD_VALUES.transmission),
+  drive: z.enum(FIELD_VALUES.drive),
+  mileage: z.coerce
+    .number("Пожалуйста, введите число")
+    .int("Пожалуйста, введите целое число")
+    .nonnegative("Пробег не может быть отрицательным"),
+  bodyType: z.enum(FIELD_VALUES.bodyType),
+  steeringWheelSide: z.enum(FIELD_VALUES.steeringWheelSide),
+  vinCode: z.string().length(17, "VIN должен быть ровно 17 символов"),
+  carCondition: z.string().min(1, "Состояние не может быть пустым"),
+  hasRestrictions: z.enum(["true", "false"] as const),
+  price: z.coerce.number().nonnegative("Цена не может быть отрицательной"),
+  clientName: z.string().min(1, "ФИО клиента обязательно"),
+  clientPhone: z.string().min(1, "Телефон обязателен"),
+  comment: z.string().optional(),
+} as const;
+
 export type EngineType = (typeof FIELD_VALUES.engineType)[number];
 export type TransmissionType = (typeof FIELD_VALUES.transmission)[number];
 export type DriveType = (typeof FIELD_VALUES.drive)[number];
 export type SteeringWheelSide = (typeof FIELD_VALUES.steeringWheelSide)[number];
 export type BodyType = (typeof FIELD_VALUES.bodyType)[number];
+
+export function getValueLabel(field: FieldName, value: string): string {
+  if (!BUTTON_FIELDS.has(field)) {
+    return value;
+  }
+
+  const labels = FIELD_LABELS[field as keyof typeof FIELD_LABELS];
+  return labels[value as keyof typeof labels] || value;
+}
+
+export function validateField(field: FieldName, value: string) {
+  const schema = fieldSchemas[field];
+  try {
+    schema.parse(value);
+    return { success: true as const };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return { success: false as const, message: err.issues[0].message };
+    }
+    return { success: false as const, message: "Неверный формат" };
+  }
+}

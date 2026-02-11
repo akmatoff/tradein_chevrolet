@@ -8,6 +8,9 @@ import {
   BUTTON_FIELDS,
   FIELD_VALUES,
   FIELD_LABELS,
+  getValueLabel,
+  FieldName,
+  validateField,
 } from "../utils/fields";
 import { message } from "telegraf/filters";
 
@@ -19,7 +22,9 @@ export class AddCommand extends Command {
   handle(): void {
     this.bot.command("add", async (ctx) => {
       ctx.session = { formData: {} };
-      await ctx.reply("Заполнение формы начато. Отмена: /cancel");
+      await ctx.reply(
+        "Заполните поля для формы по одному. Используйте команду: /cancel для отмены.",
+      );
       await this.askNext(ctx);
     });
 
@@ -41,6 +46,13 @@ export class AddCommand extends Command {
       if (BUTTON_FIELDS.has(currentField)) {
         await ctx.reply("Пожалуйста, выберите вариант из кнопок.");
         await this.askNext(ctx);
+        return;
+      }
+
+      const result = validateField(currentField, input);
+
+      if (!result.success) {
+        await ctx.reply(`❌ ${result.message}\n\n${LABELS[currentField]}:`);
         return;
       }
 
@@ -80,6 +92,7 @@ export class AddCommand extends Command {
     if (!nextField) {
       await ctx.reply("✅ Форма завершена!");
 
+      await this.summary(ctx, ctx.session!.formData!);
       delete ctx.session?.formData;
       return;
     }
@@ -100,5 +113,20 @@ export class AddCommand extends Command {
     } else {
       await ctx.reply(`${LABELS[nextField]}:`);
     }
+  }
+
+  private async summary(ctx: BotContext, formData: Record<string, string>) {
+    let result = "";
+
+    await ctx.reply("📋 Отправляю результаты!");
+
+    for (const field in formData) {
+      const value = formData[field];
+      if (value === undefined) continue;
+
+      result += `${LABELS[field as keyof typeof LABELS]}: ${getValueLabel(field as FieldName, value)}\n`;
+    }
+
+    await ctx.reply(result);
   }
 }
