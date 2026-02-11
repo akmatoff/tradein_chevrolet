@@ -1,4 +1,3 @@
-// src/commands/add.command.ts
 import { Telegraf, Markup } from "telegraf";
 import { Command } from "./Command";
 import { BotContext } from "../bot/context";
@@ -13,10 +12,23 @@ import {
   validateField,
 } from "../utils/fields";
 import { message } from "telegraf/filters";
+import { TradeInService } from "../services/TradeInService";
+import { TradeinInfoInput } from "../types";
+import {
+  BodyType,
+  DriveType,
+  EngineType,
+  SteeringWheelSide,
+  TransmissionType,
+} from "../generated/prisma/enums";
 
 export class AddCommand extends Command {
+  private tradeInService: TradeInService;
+
   constructor(bot: Telegraf<BotContext>) {
     super(bot);
+
+    this.tradeInService = new TradeInService();
   }
 
   handle(): void {
@@ -90,10 +102,22 @@ export class AddCommand extends Command {
     );
 
     if (!nextField) {
-      await ctx.reply("✅ Форма завершена!");
+      try {
+        const parsedData = this.parseFormData(ctx.session!.formData!);
+        await this.summary(ctx, ctx.session!.formData!);
 
-      await this.summary(ctx, ctx.session!.formData!);
-      delete ctx.session?.formData;
+        const record = await this.tradeInService.create(parsedData);
+
+        await ctx.reply(`Запись сохранена! ID: ${record.id}`);
+      } catch (e) {
+        console.error("Save error: ", e);
+        await ctx.reply(
+          "❌ Ошибка при сохранении данных. Пожалуйста, попробуйте заново.",
+        );
+      } finally {
+        delete ctx.session.formData;
+      }
+
       return;
     }
 
@@ -128,5 +152,28 @@ export class AddCommand extends Command {
     }
 
     await ctx.reply(result);
+  }
+
+  private parseFormData(formData: Record<string, string>): TradeinInfoInput {
+    return {
+      manager: formData.manager,
+      carBrand: formData.carBrand,
+      carModel: formData.carModel,
+      productionYear: parseInt(formData.productionYear),
+      engineVolume: parseInt(formData.engineVolume),
+      engineType: formData.engineType as EngineType,
+      transmission: formData.transmission as TransmissionType,
+      drive: formData.drive as DriveType,
+      mileage: parseInt(formData.mileage),
+      bodyType: formData.bodyType as BodyType,
+      steeringWheelSide: formData.steeringWheelSide as SteeringWheelSide,
+      vinCode: formData.vinCode,
+      carCondition: formData.carCondition,
+      hasRestrictions: formData.hasRestrictions === "true",
+      price: parseInt(formData.price),
+      clientName: formData.clientName,
+      clientPhone: formData.clientPhone,
+      comment: formData.comment,
+    };
   }
 }

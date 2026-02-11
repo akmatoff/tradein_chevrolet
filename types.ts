@@ -1,11 +1,10 @@
 import {
+  BodyType,
   DriveType,
   EngineType,
   SteeringWheelSide,
   TransmissionType,
 } from "./generated/prisma/enums";
-import { Context as TelegrafContext } from "telegraf";
-import type { Message as TGMessage } from "telegraf/types";
 
 export type TradeinInfo = {
   id: number;
@@ -18,7 +17,7 @@ export type TradeinInfo = {
   transmission: TransmissionType;
   drive: DriveType;
   mileage: number;
-  bodyType: string;
+  bodyType: BodyType;
   steeringWheelSide: SteeringWheelSide;
   vinCode: string;
   carCondition: string;

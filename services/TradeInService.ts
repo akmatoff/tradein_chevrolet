@@ -3,7 +3,7 @@ import { TradeinInfoInput } from "../types";
 
 export class TradeInService {
   async create(tradeInInfo: TradeinInfoInput) {
-    await prisma.tradeinInfo.create({ data: tradeInInfo });
+    return await prisma.tradeinInfo.create({ data: tradeInInfo });
   }
 
   async getById(id: number) {
@@ -15,6 +15,6 @@ export class TradeInService {
   }
 
   async delete(id: number) {
-    await prisma.tradeinInfo.delete({ where: { id } });
+    return await prisma.tradeinInfo.delete({ where: { id } });
   }
 }

@@ -138,8 +138,8 @@ export const fieldSchemas = {
   carBrand: z.string().min(1, "Марка не может быть пустой"),
   carModel: z.string().min(1, "Модель не может быть пустой"),
   productionYear: z.coerce
-    .number()
-    .int("Пожалуйсте, введите целое число")
+    .number("Пожалуйста, введите число")
+    .int("Пожалуйста, введите целое число")
     .positive("Год выпуска должен быть положительным"),
   engineVolume: z.coerce
     .number("Пожалуйста, введите число")
@@ -156,9 +156,13 @@ export const fieldSchemas = {
   vinCode: z.string().length(17, "VIN должен быть ровно 17 символов"),
   carCondition: z.string().min(1, "Состояние не может быть пустым"),
   hasRestrictions: z.enum(["true", "false"] as const),
-  price: z.coerce.number().nonnegative("Цена не может быть отрицательной"),
-  clientName: z.string().min(1, "ФИО клиента обязательно"),
-  clientPhone: z.string().min(1, "Телефон обязателен"),
+  price: z.coerce
+    .number("Пожалуйста, введите число")
+    .nonnegative("Цена не может быть отрицательной"),
+  clientName: z.string().min(3, "ФИО клиента обязательно"),
+  clientPhone: z
+    .string()
+    .min(9, "Пожалуйста, введите корректный номер телефона"),
   comment: z.string().optional(),
 } as const;
 
