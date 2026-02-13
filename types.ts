@@ -30,3 +30,8 @@ export type TradeinInfo = {
 };
 
 export type TradeinInfoInput = Omit<TradeinInfo, "id" | "createdAt">;
+
+export type TradeInfoOutput = Omit<
+  TradeinInfo,
+  "clientPhone" | "clientName" | "id" | "createdAt"
+>;

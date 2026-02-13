@@ -210,7 +210,11 @@ export class AddCommand extends Command {
   private async showFullSummary(ctx: BotContext) {
     let textSummary = "📋 Отправляю результаты:\n\n";
 
-    for (const field of FIELDS) {
+    const filteredFields = FIELDS.filter(
+      (field) => !["clientPhone", "clientName"].includes(field),
+    );
+
+    for (const field of filteredFields) {
       const value = ctx.session!.formData![field];
 
       if (value !== undefined) {
@@ -218,6 +222,10 @@ export class AddCommand extends Command {
         textSummary += `${LABELS[field]}: ${displayValue}\n`;
       }
     }
+
+    console.log(
+      `textSummary: \n${textSummary}\n__________________________________________________`,
+    );
 
     await ctx.reply(textSummary);
 
@@ -230,13 +238,13 @@ export class AddCommand extends Command {
     if (fileIds.length > 0) {
       try {
         await ctx.replyWithMediaGroup(
-          fileIds.map((fileId, index) => ({
+          fileIds.map((fileId) => ({
             type: "photo",
             media: fileId,
           })),
         );
       } catch (error) {
-        for (const [i, fileId] of fileIds.entries()) {
+        for (const [_, fileId] of fileIds.entries()) {
           await ctx.replyWithPhoto(fileId);
         }
       }
