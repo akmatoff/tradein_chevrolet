@@ -1,8 +1,8 @@
-FROM node:22-alpine as build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package*.json ./
 
 RUN npm install
 
@@ -14,15 +14,15 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package*.json ./
 
 RUN npm install --omit=dev
 
 COPY --from=build /app/dist ./dist
 
 RUN mkdir -p uploads/photos
-
 RUN chown -R node:node uploads
+
 USER node
 
 CMD ["node", "dist/main.js"]

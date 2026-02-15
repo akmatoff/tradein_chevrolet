@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "description": "",
   "main": "main.ts",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch main.ts",
     "start": "node dist/main.js",
-    "build": "tsx main.ts",
+    "build": "tsc",
     "generate": "npx prisma generate"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^25.2.2",
     "@types/pg": "^8.16.0",
     "dotenv": "^17.2.4",
@@ -24,6 +24,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "express": "^5.2.1",
     "pg": "^8.18.0",
     "telegraf": "^4.16.3",
     "zod": "^4.3.6"

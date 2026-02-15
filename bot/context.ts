@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
-import { FieldName } from "../utils/fields";
-import { PhotoType } from "../utils/photo-fields";
+import { FieldName } from "@/utils/fields.js";
+import { PhotoType } from "@/utils/photo-fields.js";
 
 export type PhotoSession = {
   path: string;
@@ -15,5 +15,5 @@ export interface SessionData {
 }
 
 export interface BotContext extends Context {
-  session: SessionData;
+  session?: SessionData;
 }

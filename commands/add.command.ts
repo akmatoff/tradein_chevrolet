@@ -12,7 +12,7 @@ import {
 } from "../utils/fields";
 import { message } from "telegraf/filters";
 import { TradeInService } from "../services/TradeInService";
-import { Photo, TradeinInfoInput } from "../types";
+import { TradeinInfoInput } from "../types";
 import {
   BodyType,
   DriveType,
@@ -24,6 +24,7 @@ import { PHOTO_LABELS, PHOTO_TYPES } from "../utils/photo-fields";
 import { join } from "node:path";
 import { pipeline } from "stream/promises";
 import { createWriteStream } from "node:fs";
+import { Readable } from "node:stream";
 
 export class AddCommand extends Command {
   private tradeInService: TradeInService;
@@ -115,11 +116,13 @@ export class AddCommand extends Command {
       if (!ctx.session!.photos || !ctx.session!.currentPhotoType) return;
 
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
-      const type = ctx.session.currentPhotoType;
+      const type = ctx.session?.currentPhotoType;
+
+      if (!photo || !type) return;
 
       const filename = `${Date.now()}-${photo.file_unique_id}-${type}.jpg`;
       const absolutePath = join(process.cwd(), "uploads", "photos", filename);
-      const relativePath = `uploads/photos/${filename}`;
+      const relativePath = `/uploads/photos/${filename}`;
 
       try {
         const fileLink = await ctx.telegram.getFileLink(photo.file_id);
@@ -130,9 +133,10 @@ export class AddCommand extends Command {
           throw new Error("File not found");
         }
 
-        await pipeline(fileResponse.body, createWriteStream(absolutePath));
+        const nodeStream = Readable.fromWeb(fileResponse.body as any);
+        await pipeline(nodeStream, createWriteStream(absolutePath));
 
-        ctx.session.photos[type] = {
+        ctx.session!.photos[type] = {
           path: relativePath,
           type,
           fileId: photo.file_id,
@@ -143,7 +147,7 @@ export class AddCommand extends Command {
         const nextIndex = currentIndex + 1;
 
         if (nextIndex < PHOTO_TYPES.length) {
-          ctx.session.currentPhotoType = PHOTO_TYPES[nextIndex];
+          ctx.session!.currentPhotoType = PHOTO_TYPES[nextIndex];
 
           await ctx.reply(`✅ ${PHOTO_LABELS[type]} сохранена.`);
 
