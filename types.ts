@@ -2,6 +2,7 @@ import {
   BodyType,
   DriveType,
   EngineType,
+  PhotoType,
   SteeringWheelSide,
   TransmissionType,
 } from "./generated/prisma/enums";
@@ -35,3 +36,8 @@ export type TradeInfoOutput = Omit<
   TradeinInfo,
   "clientPhone" | "clientName" | "id" | "createdAt"
 >;
+
+export type Photo = {
+  path: string;
+  type: PhotoType;
+};

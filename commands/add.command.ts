@@ -12,7 +12,7 @@ import {
 } from "../utils/fields";
 import { message } from "telegraf/filters";
 import { TradeInService } from "../services/TradeInService";
-import { TradeinInfoInput } from "../types";
+import { Photo, TradeinInfoInput } from "../types";
 import {
   BodyType,
   DriveType,
@@ -21,6 +21,9 @@ import {
   TransmissionType,
 } from "../generated/prisma/enums";
 import { PHOTO_LABELS, PHOTO_TYPES } from "../utils/photo-fields";
+import { join } from "node:path";
+import { pipeline } from "stream/promises";
+import { createWriteStream } from "node:fs";
 
 export class AddCommand extends Command {
   private tradeInService: TradeInService;
@@ -109,27 +112,51 @@ export class AddCommand extends Command {
     });
 
     this.bot.on(message("photo"), async (ctx) => {
-      if (!ctx.session.photos || !ctx.session.currentPhotoType) return;
+      if (!ctx.session!.photos || !ctx.session!.currentPhotoType) return;
 
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       const type = ctx.session.currentPhotoType;
 
-      ctx.session.photos[type] = photo.file_id;
+      const filename = `${Date.now()}-${photo.file_unique_id}-${type}.jpg`;
+      const absolutePath = join(process.cwd(), "uploads", "photos", filename);
+      const relativePath = `uploads/photos/${filename}`;
 
-      const currentIndex = PHOTO_TYPES.indexOf(type);
+      try {
+        const fileLink = await ctx.telegram.getFileLink(photo.file_id);
 
-      const nextIndex = currentIndex + 1;
+        const fileResponse = await fetch(fileLink.href);
 
-      if (nextIndex < PHOTO_TYPES.length) {
-        ctx.session.currentPhotoType = PHOTO_TYPES[nextIndex];
+        if (!fileResponse.ok || !fileResponse.body) {
+          throw new Error("File not found");
+        }
 
-        await ctx.reply(`✅ ${PHOTO_LABELS[type]} сохранена.`);
+        await pipeline(fileResponse.body, createWriteStream(absolutePath));
 
-        await this.askNext(ctx);
-      } else {
-        await this.showFullSummary(ctx);
+        ctx.session.photos[type] = {
+          path: relativePath,
+          type,
+          fileId: photo.file_id,
+        };
 
-        await this.saveData(ctx);
+        const currentIndex = PHOTO_TYPES.indexOf(type);
+
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex < PHOTO_TYPES.length) {
+          ctx.session.currentPhotoType = PHOTO_TYPES[nextIndex];
+
+          await ctx.reply(`✅ ${PHOTO_LABELS[type]} сохранена.`);
+
+          await this.askNext(ctx);
+        } else {
+          await this.showFullSummary(ctx);
+
+          await this.saveData(ctx);
+        }
+      } catch (e) {
+        console.error("Photo save error:", e);
+
+        await ctx.reply("❌ Ошибка при сохранении фото. Попробуйте снова.");
       }
     });
 
@@ -149,6 +176,10 @@ export class AddCommand extends Command {
       const parsedData = this.parseFormData(ctx.session!.formData!);
 
       const record = await this.tradeInService.create(parsedData);
+
+      const photoRecords = Object.values(ctx.session?.photos || {});
+
+      await this.tradeInService.savePhotos(record.id, photoRecords);
 
       await ctx.reply(`✅ Запись сохранена! ID: ${record.id}`);
     } catch (e) {
@@ -176,7 +207,7 @@ export class AddCommand extends Command {
     );
 
     if (!nextField) {
-      ctx.session!.currentPhotoType = "front";
+      ctx.session!.currentPhotoType = "FRONT";
 
       await ctx.reply(
         "✅ Текстовые поля заполнены!\n\nТеперь отправьте фото по порядку:",
@@ -231,7 +262,7 @@ export class AddCommand extends Command {
 
     const photos = ctx.session?.photos || {};
 
-    const fileIds = PHOTO_TYPES.map((type) => photos[type]).filter(
+    const fileIds = PHOTO_TYPES.map((type) => photos[type]!.fileId).filter(
       Boolean,
     ) as string[];
 

@@ -20,4 +20,9 @@ RUN npm install --omit=dev
 
 COPY --from=build /app/dist ./dist
 
+RUN mkdir -p uploads/photos
+
+RUN chown -R node:node uploads
+USER node
+
 CMD ["node", "dist/main.js"]

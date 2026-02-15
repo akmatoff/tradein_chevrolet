@@ -125,6 +125,7 @@ export const FIELD_LABELS = {
   bodyType: {
     SEDAN: "Седан",
     HATCHBACK: "Хетчбэк",
+
     UNIVERSAL: "Универсал",
     COUPE: "Купе",
     SUV: "SUV",

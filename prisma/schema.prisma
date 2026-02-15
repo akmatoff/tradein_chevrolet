@@ -48,6 +48,16 @@ enum BodyType {
   MINIVAN
 }
 
+enum PhotoType {
+  FRONT
+  LEFT
+  RIGHT
+  REAR
+  SALON_FRONT
+  SALON_REAR
+  UNDER_HOOD
+}
+
 model TradeinInfo {
   id Int @id @default(autoincrement())
   manager String
@@ -75,6 +85,7 @@ model TradeinInfo {
 model CarPhoto {
   id Int @id @default(autoincrement())
   path String
+  type PhotoType
   tradeinInfoId Int
   tradeinInfo TradeinInfo @relation(fields: [tradeinInfoId], references: [id])
 }
