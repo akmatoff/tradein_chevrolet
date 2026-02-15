@@ -34,6 +34,9 @@ services:
     volumes:
       - tradein_uploads:/app/uploads
 
+    ports:
+      - "3000:3000"
+
 volumes:
   tradein_pgdata:
   tradein_uploads:
