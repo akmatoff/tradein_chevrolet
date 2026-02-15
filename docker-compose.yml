@@ -6,9 +6,9 @@ services:
       - "5432:5432"
 
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres11
-      POSTGRES_DB: tradein
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
 
     volumes:
       - tradein_pgdata:/var/lib/postgresql/data
