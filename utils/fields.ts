@@ -57,12 +57,12 @@ export const LABELS: Record<FieldName, string> = {
   transmission: "🔄 Коробка передач",
   drive: "🚙 Привод",
   mileage: "🛣️ Пробег (км)",
-  bodyType: "🏠 Тип кузова",
+  bodyType: "🛻 Тип кузова",
   steeringWheelSide: "🧭 Сторона руля",
   vinCode: "🔖 VIN (17 символов)",
   carCondition: "🔧 Состояние авто",
   hasRestrictions: "⚠️ Есть ограничения? (кредит/арест/залог)",
-  price: "💰 Цена",
+  price: "💰 Цена (сом)",
   clientName: "📛 ФИО клиента",
   clientPhone: "📱 Телефон клиента",
   comment: "💬 Комментарий",
@@ -75,6 +75,7 @@ export const BUTTON_FIELDS = new Set<FieldName>([
   "steeringWheelSide",
   "hasRestrictions",
   "bodyType",
+  "carCondition",
 ]);
 
 export const FIELD_VALUES = {
@@ -92,6 +93,7 @@ export const FIELD_VALUES = {
   drive: ["FRONT", "REAR", "FULL"] as const,
   steeringWheelSide: ["LEFT", "RIGHT"] as const,
   hasRestrictions: ["true", "false"] as const,
+  carCondition: ["ONE", "TWO", "THREE", "FOUR", "FIVE"] as const,
 } as const;
 
 export const FIELD_LABELS = {
@@ -129,6 +131,13 @@ export const FIELD_LABELS = {
     CROSSOVER: "Кроссовер",
     MINIVAN: "Минивэн",
   },
+  carCondition: {
+    ONE: "⭐",
+    TWO: "⭐⭐",
+    THREE: "⭐⭐⭐",
+    FOUR: "⭐⭐⭐⭐",
+    FIVE: "⭐⭐⭐⭐⭐",
+  },
 } as const;
 
 export const fieldSchemas = {
@@ -154,7 +163,7 @@ export const fieldSchemas = {
   bodyType: z.enum(FIELD_VALUES.bodyType),
   steeringWheelSide: z.enum(FIELD_VALUES.steeringWheelSide),
   vinCode: z.string().length(17, "VIN должен быть ровно 17 символов"),
-  carCondition: z.string().min(1, "Состояние не может быть пустым"),
+  carCondition: z.enum(FIELD_VALUES.carCondition),
   hasRestrictions: z.enum(["true", "false"] as const),
   price: z.coerce
     .number("Пожалуйста, введите число")
@@ -171,6 +180,7 @@ export type TransmissionType = (typeof FIELD_VALUES.transmission)[number];
 export type DriveType = (typeof FIELD_VALUES.drive)[number];
 export type SteeringWheelSide = (typeof FIELD_VALUES.steeringWheelSide)[number];
 export type BodyType = (typeof FIELD_VALUES.bodyType)[number];
+export type CarCondition = (typeof FIELD_VALUES.carCondition)[number];
 
 export function getValueLabel(field: FieldName, value: string): string {
   if (!BUTTON_FIELDS.has(field)) {
